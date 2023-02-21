@@ -14,10 +14,10 @@ def allowed_file(filename):
 
 class AnoDataset(Dataset):
 
-    def __init__(self, image_directory_path: str,
-                 mask_directory_path: Optional[str] = None,
-                 image_transforms: T.Compose = image_transform,
-                 mask_transforms: T.Compose = mask_transform) -> None:
+    def __init__(self, image_directory_path,
+                 mask_directory_path = None,
+                 image_transforms = image_transform,
+                 mask_transforms = mask_transform):
 
         self.image_transforms = image_transforms
         self.mask_transforms = mask_transforms
