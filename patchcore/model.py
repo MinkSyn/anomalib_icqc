@@ -18,7 +18,7 @@ class PatchcoreModel(nn.Module):
                  training = False,
                  num_neighbors = 9):
         super().__init__()
-        self.tiler: Tiler | None = None
+        self.tiler = None
 
         self.backbone = backbone
         self.layers = layers
