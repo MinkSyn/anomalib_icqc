@@ -31,7 +31,7 @@ class TimmFeatureExtractor(nn.Module):
             [torch.Size([32, 64, 64, 64]), torch.Size([32, 128, 32, 32]), torch.Size([32, 256, 16, 16])]
     """
 
-    def __init__(self, backbone: str, layers: list[str], pre_trained: bool = True, requires_grad: bool = False):
+    def __init__(self, backbone, layers, pre_trained = True, requires_grad = False):
         super().__init__()
         self.backbone = backbone
         self.layers = layers
@@ -47,7 +47,7 @@ class TimmFeatureExtractor(nn.Module):
         self.out_dims = self.feature_extractor.feature_info.channels()
         self._features = {layer: torch.empty(0) for layer in self.layers}
 
-    def _map_layer_to_idx(self, offset: int = 3) -> list[int]:
+    def _map_layer_to_idx(self, offset = 3):
         """Maps set of layer names to indices of model.
         Args:
             offset (int) `timm` ignores the first few layers when indexing please update offset based on need
