@@ -39,7 +39,7 @@ class PatchcoreModel(nn.Module):
         self.register_buffer("memory_bank", Tensor())
         self.memory_bank = None
 
-    def forward(self, input_tensor: Tensor, embedding_coreset: Tensor) -> Tensor:
+    def forward(self, input_tensor, embedding_coreset):
         """Return Embedding during training, or a tuple of anomaly map and anomaly score during testing.
         Steps performed:
         1. Get features from a CNN.
@@ -87,7 +87,7 @@ class PatchcoreModel(nn.Module):
 
         return output
 
-    def generate_embedding(self, features: dict[str, Tensor]) -> Tensor:
+    def generate_embedding(self, features):
         """Generate embedding from hierarchical feature map.
         Args:
             features: Hierarchical feature map from a CNN (ResNet18 or WideResnet)
@@ -105,7 +105,7 @@ class PatchcoreModel(nn.Module):
         return embeddings
 
     @staticmethod
-    def reshape_embedding(embedding: Tensor) -> Tensor:
+    def reshape_embedding(embedding):
         """Reshape Embedding.
         Reshapes Embedding to the following format:
         [Batch, Embedding, Patch, Patch] to [Batch*Patch*Patch, Embedding]
@@ -118,7 +118,7 @@ class PatchcoreModel(nn.Module):
         embedding = embedding.permute(0, 2, 3, 1).reshape(-1, embedding_size)
         return embedding
 
-    def nearest_neighbors(self, input_embedding: Tensor, embedding_coreset: Tensor, n_neighbors: int) -> tuple[Tensor, Tensor]:
+    def nearest_neighbors(self, input_embedding, embedding_coreset, n_neighbors):
         """Nearest Neighbours using brute force method and euclidean norm.
         Args:
             embedding (Tensor): Features to compare the distance with the memory bank.
@@ -135,7 +135,7 @@ class PatchcoreModel(nn.Module):
             patch_scores, locations = distances.topk(k=n_neighbors, largest=False, dim=1)
         return patch_scores, locations
 
-    def compute_anomaly_score(self, embedding_coreset: Tensor, patch_scores: Tensor, locations: Tensor, embedding: Tensor) -> Tensor:
+    def compute_anomaly_score(self, embedding_coreset, patch_scores, locations, embedding):
         """Compute Image-Level Anomaly Score.
         Args:
             patch_scores (Tensor): Patch-level anomaly scores
