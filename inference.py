@@ -124,9 +124,9 @@ class Inference:
         coreset = sampler.sample_coreset()
         return coreset
             
-def main(cls_quality='occluded', visual=False):
-    config = Config.load_yaml('config.yml')
-    infer = Inference(config)
+def main(config='config.yml', cls_quality='occluded', visual=False):
+    cfg = Config.load_yaml(config)
+    infer = Inference(cfg)
     
     results = infer.predict(test_name=cls_quality,
                             visual=visual)
