@@ -22,13 +22,13 @@ class SparseRandomProjection:
             state for sample_without_replacement function. Defaults to None.
     """
 
-    def __init__(self, eps: float = 0.1, random_state: int | None = None) -> None:
+    def __init__(self, eps = 0.1, random_state = None):
         self.n_components: int
         self.sparse_random_matrix: Tensor
         self.eps = eps
         self.random_state = random_state
 
-    def _sparse_random_matrix(self, n_features: int):
+    def _sparse_random_matrix(self, n_features):
         """Random sparse matrix. Based on https://web.stanford.edu/~hastie/Papers/Ping/KDD06_rp.pdf.
         Args:
             n_features (int): Dimentionality of the original source space
@@ -69,7 +69,7 @@ class SparseRandomProjection:
 
         return components
 
-    def johnson_lindenstrauss_min_dim(self, n_samples: int, eps: float = 0.1):
+    def johnson_lindenstrauss_min_dim(self, n_samples, eps= 0.1):
         """Find a 'safe' number of components to randomly project to.
         Ref eqn 2.1 https://cseweb.ucsd.edu/~dasgupta/papers/jl.pdf
         Args:
@@ -80,7 +80,7 @@ class SparseRandomProjection:
         denominator = (eps**2 / 2) - (eps**3 / 3)
         return (4 * np.log(n_samples) / denominator).astype(np.int64)
 
-    def fit(self, embedding: Tensor) -> SparseRandomProjection:
+    def fit(self, embedding):
         """Generates sparse matrix from the embedding tensor.
         Args:
             embedding (Tensor): embedding tensor for generating embedding
@@ -102,7 +102,7 @@ class SparseRandomProjection:
 
         return self
 
-    def transform(self, embedding: Tensor) -> Tensor:
+    def transform(self, embedding):
         """Project the data by using matrix product with the random matrix.
         Args:
             embedding (Tensor): Embedding of shape (n_samples, n_features)
@@ -133,7 +133,7 @@ class KCenterGreedy:
         torch.Size([219, 1536])
     """
 
-    def __init__(self, embedding: Tensor, sampling_ratio: float) -> None:
+    def __init__(self, embedding, sampling_ratio):
         self.embedding = embedding
         self.coreset_size = int(embedding.shape[0] * sampling_ratio)
         self.model = SparseRandomProjection(eps=0.9)
@@ -142,11 +142,11 @@ class KCenterGreedy:
         self.min_distances: Tensor = None
         self.n_observations = self.embedding.shape[0]
 
-    def reset_distances(self) -> None:
+    def reset_distances(self):
         """Reset minimum distances."""
         self.min_distances = None
 
-    def update_distances(self, cluster_centers: list[int]) -> None:
+    def update_distances(self, cluster_centers):
         """Update min distances given cluster centers.
         Args:
             cluster_centers (list[int]): indices of cluster centers
@@ -162,7 +162,7 @@ class KCenterGreedy:
             else:
                 self.min_distances = torch.minimum(self.min_distances, distance)
 
-    def get_new_idx(self) -> int:
+    def get_new_idx(self):
         """Get index value of a sample.
         Based on minimum distance of the cluster
         Returns:
@@ -176,7 +176,7 @@ class KCenterGreedy:
 
         return idx
 
-    def select_coreset_idxs(self, selected_idxs: list[int] | None = None) -> list[int]:
+    def select_coreset_idxs(self, selected_idxs = None):
         """Greedily form a coreset to minimize the maximum distance of a cluster.
         Args:
             selected_idxs: index of samples already selected. Defaults to an empty set.
@@ -207,7 +207,7 @@ class KCenterGreedy:
 
         return selected_coreset_idxs
 
-    def sample_coreset(self, selected_idxs: list[int] | None = None) -> Tensor:
+    def sample_coreset(self, selected_idxs = None):
         """Select coreset from the embedding.
         Args:
             selected_idxs: index of samples already selected. Defaults to an empty set.
