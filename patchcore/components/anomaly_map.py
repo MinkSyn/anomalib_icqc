@@ -8,7 +8,7 @@ from kornia.filters import get_gaussian_kernel2d
 from kornia.filters.filter import _compute_padding
 from kornia.filters.kernels import normalize_kernel2d
 
-def compute_kernel_size(sigma_val: float) -> int:
+def compute_kernel_size(sigma_val):
     """Compute kernel size from sigma value.
     Args:
         sigma_val (float): Sigma value.
@@ -26,13 +26,13 @@ class GaussianBlur2d(nn.Module):
 
     def __init__(
         self,
-        sigma: float | tuple[float, float],
-        channels: int = 1,
-        kernel_size: int | tuple[int, int] | None = None,
-        normalize: bool = True,
-        border_type: str = "reflect",
-        padding: str = "same",
-    ) -> None:
+        sigma,
+        channels = 1,
+        kernel_size = None,
+        normalize = True,
+        border_type= "reflect",
+        padding= "same",
+    ):
         """Initialize model, setup kernel etc..
         Args:
             sigma (float | tuple[float, float]): standard deviation to use for constructing the Gaussian kernel.
@@ -63,7 +63,7 @@ class GaussianBlur2d(nn.Module):
         self.height, self.width = self.kernel.shape[-2:]
         self.padding_shape = _compute_padding([self.height, self.width])
 
-    def forward(self, input_tensor: Tensor) -> Tensor:
+    def forward(self, input_tensor):
         """Blur the input with the computed Gaussian.
         Args:
             input_tensor (Tensor): Input tensor to be blurred.
@@ -90,15 +90,15 @@ class AnomalyMapGenerator(nn.Module):
 
     def __init__(
         self,
-        input_size: ListConfig | tuple,
-        sigma: int = 4,
-    ) -> None:
+        input_size,
+        sigma = 4,
+    ):
         super().__init__()
         self.input_size = input_size
         kernel_size = 2 * int(4.0 * sigma + 0.5) + 1
         self.blur = GaussianBlur2d(kernel_size=(kernel_size, kernel_size), sigma=(sigma, sigma), channels=1)
 
-    def compute_anomaly_map(self, patch_scores: Tensor) -> Tensor:
+    def compute_anomaly_map(self, patch_scores):
         """Pixel Level Anomaly Heatmap.
         Args:
             patch_scores (Tensor): Patch-level anomaly scores
@@ -110,7 +110,7 @@ class AnomalyMapGenerator(nn.Module):
 
         return anomaly_map
 
-    def forward(self, patch_scores: Tensor) -> Tensor:
+    def forward(self, patch_scores):
         """Returns anomaly_map and anomaly_score.
         Args:
             patch_scores (Tensor): Patch-level anomaly scores
