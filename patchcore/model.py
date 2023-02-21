@@ -39,7 +39,7 @@ class PatchcoreModel(nn.Module):
         self.register_buffer("memory_bank", Tensor())
         self.memory_bank = None
 
-    def forward(self, input_tensor: Tensor, embedding_coreset: Tensor) -> Tensor | tuple[Tensor, Tensor]:
+    def forward(self, input_tensor: Tensor, embedding_coreset: Tensor) -> Tensor:
         """Return Embedding during training, or a tuple of anomaly map and anomaly score during testing.
         Steps performed:
         1. Get features from a CNN.
