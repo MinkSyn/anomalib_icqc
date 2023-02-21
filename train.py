@@ -72,7 +72,7 @@ class Trainer:
             logger.info('-'*20)
         
             
-def main(resume):
+def main(resume, config):
     config = Config.load_yaml('config.yml')
     train = Trainer(config, resume)
     
