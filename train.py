@@ -73,12 +73,12 @@ class Trainer:
         
             
 def main(resume, config):
-    config = Config.load_yaml('config.yml')
-    train = Trainer(config, resume)
+    cfg = Config.load_yaml(config)
+    train = Trainer(cfg, resume)
     
-    logger.info(f"Data root: {config['data_root']}")
+    logger.info(f"Data root: {cfg['data_root']}")
     train.fit()
-    logger.info(f"Successfully & save path: {config['embedding_path']}")
+    logger.info(f"Successfully & save path: {cfg['embedding_path']}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
