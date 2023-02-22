@@ -27,7 +27,7 @@ feature:
 hyper:
   num_neighbors: 9
   ratio: 0.1
-  distance: euclidean # mahalanobis(anodet)
+  distance: euclidean 
 
 info_ver: v1.0
 info:

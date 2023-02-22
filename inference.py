@@ -6,14 +6,16 @@ from collections import Counter
 from tqdm import tqdm
 
 import cv2
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
+from patchcore.datasets import AnoDataset
 from patchcore.model import build_model
 from patchcore.sampling_methods.kcenter import KCenterGreedy
 from config import Config
-from tool import verify_device, draw_chart, binary_classify, infer_transform
-from const import CardID, nameAno, IMG_SIZE
+from tool import *
+from const import CardID, AnomalyID, nameAno, IMG_SIZE
 
 
 class Inference:
@@ -38,28 +40,28 @@ class Inference:
         self.batch_size = cfg['batch_size']
         self.sampling_ratio = cfg['hyper']['ratio']
         self.thresh = cfg['thresh']
-        self.embed_path = os.path.join(cfg['embedding_path'], f"run{cfg['run']}")
+        self.embed_path = os.path.join(cfg['embedding_path'], f"run{cfg['run']}")         
 
-    def predict(self, test_name=None, visual=False, coreset=False):
-        os.makedirs(os.path.join(self.out_root, test_name), exist_ok=True)
-        result_path = os.path.join(self.out_root, test_name, f"{self.run_name}.json")
+    def predict(self, test_root, name_folder=None, metric=False, chart=False, coreset=False):
+        os.makedirs(os.path.join(self.out_root, name_folder), exist_ok=True)
+        result_path = os.path.join(self.out_root, name_folder, f"{self.run_name}.json")
         
         if os.path.exists(result_path):
             with open(result_path) as f:
                 results = json.load(f)
-            logger.info(f'Successfully loaded the file: f"{test_name}/{self.run_name}.json"')
+            logger.info(f'Successfully loaded the file: f"{name_folder}/{self.run_name}.json"')
         else:
             results = {}
-            logger.info(f"Test name: {test_name}")
+            logger.info(f"The name of test folder: {name_folder}")
             for cls_name in self.cls_card:
                 if coreset:
-                    test_dir = os.path.join(self.data_root, cls_name, 'good')
-                else:
-                    test_dir = os.path.join(self.test_root, cls_name, 'bad', test_name)
-                if not os.path.exists(test_dir):
-                    logger.info(f"Not search path for [{cls_name}]")
+                    test_dir = [(os.path.join(self.data_root, cls_name, 'good')), ('normal')]
+                elif cls_name not in test_root.keys():
+                    logger.info(f'Not exits class {cls_name}')
                     continue
-                
+                else:
+                    test_dir = test_root[cls_name]
+                    
                 embedding_coreset = self.load_coreset(cls_name=cls_name)
                 logger.info(f'Inference: [{cls_name}]')
                 
@@ -70,40 +72,76 @@ class Inference:
             with open(result_path, 'w') as g:
                 json.dump(results, g, indent=4)
                                   
-        if visual:
-            self.visualization(results, test_name)
+        if chart:
+            self.visualize_chart(results, name_folder)
+            
+        if metric:
+            self.visualize_metric(results, name_folder)
             
         return results
-        
+ 
     def predict_card(self, embedding_coreset, test_dir, cls_name):
-        name_imgs = sorted(os.listdir(test_dir))
-        images = []
-        for name in name_imgs:
-            img_path = os.path.join(test_dir, name)
-            image = cv2.imread(img_path)
-            image = cv2.resize(image, IMG_SIZE)
-            images.append((image, img_path, name))
-            
-        dataloader = DataLoader(images, batch_size=self.batch_size)
+        dataloader = self.get_loader(test_dir)
         
         outputs = []
         for batch in tqdm(dataloader):
             lst_imgs = batch[0].numpy()
-            # lst_paths = batch[1]
-            # lst_names = batch[2]
+            lst_paths = batch[1]
+            lst_names = batch[2]
+            lst_labels = batch[3]
             ano_batch = infer_transform(lst_imgs, self.device)
             anomaly_map, anomaly_score = self.model(ano_batch, embedding_coreset)
             pred = binary_classify(anomaly_score, self.thresh[cls_name])
         
             for idx in range(len(lst_imgs)):
-                outputs.append({'pred': nameAno[int(pred[idx])],
+                outputs.append({'path': lst_paths[idx],
+                                'image': lst_names[idx],
+                                'label': nameAno[int(lst_labels[idx])],
+                                'pred': nameAno[int(pred[idx])],
                                 'prob': round(float(anomaly_score[idx]), 4),
+                                'map': anomaly_map[idx],
                                 })
         return outputs
     
-    def visualization(self, results_test, test_name):
-        results_train = self.predict(test_name='train_embedding', coreset=True)
-        save_path = os.path.join(self.out_root, test_name)
+    def get_loader(self, test_dir):
+        dataloader = {}
+
+        images = []
+        for idx in range(len(test_dir[0])):
+            name_imgs = sorted(os.listdir(test_dir[0][idx]))
+            if test_dir[1][idx] == 'anomaly':
+                label = 1
+            elif test_dir[1][idx] == 'normal':
+                label = 0
+            else:
+                raise Exception(f'Not exist label: {test_dir[1][idx]}')
+            
+            for name in name_imgs:
+                img_path = os.path.join(test_dir, name)
+                image = cv2.imread(img_path)
+                image = cv2.resize(image, IMG_SIZE)
+                images.append((image, img_path, name, label))
+            
+        dataloader = DataLoader(images, batch_size=self.batch_size)
+        return dataloader 
+    
+    def visualize_metric(self, results, name_test_dir):
+        save_path = os.path.join(self.out_root, name_test_dir, 'ROC_Curve.jpg')
+        
+        for cls_name in results.keys():
+            target, prediction = [], []
+            for idx in range(len(results[cls_name])):
+                target.append(AnomalyID[results[cls_name][idx]['label']])
+                prediction.append(AnomalyID[results[cls_name][idx]['pred']])
+            res_metric = visualize_eval(target, prediction, save_path)
+            res_metric['Threshold_config'] = self.threshold[cls_name]
+            df = pd.DataFrame.from_dict(res_metric)
+            logger.info(f'Metrics of {cls_name}')
+            logger.info(df) 
+            
+    def visualize_chart(self, results_test, name_test_dir):
+        results_train = self.predict(name_folder='train_embedded', coreset=True)
+        save_path = os.path.join(self.out_root, name_test_dir)
 
         for cls_name in results_test.keys():
             train_score = [results_train[cls_name][idx]['prob'] for idx in range(len(results_train[cls_name]))]
@@ -124,13 +162,20 @@ class Inference:
         coreset = sampler.sample_coreset()
         return coreset
             
-def main(config='config.yml', cls_quality='occluded', visual=False):
+            
+def main(config, test_root, name_folder, chart, metric):
+    '''
+        test_root: list( tuple(paths or path) ,tuple(bool for labels) )
+        Ex: test_root = [('./test/occluded', './test/sharp'), (True, False)]
+    '''
     cfg = Config.load_yaml(config)
     infer = Inference(cfg)
     
-    results = infer.predict(test_name=cls_quality,
-                            visual=visual)
-    # exit()
+    results = infer.predict(test_root=test_root,
+                            name_folder=name_folder,
+                            chart=chart,
+                            metric=metric)
+
     for cls_name in results.keys():
         predict = [results[cls_name][idx]['pred'] for idx in range(len(results[cls_name]))]
         view_res = Counter(predict)
@@ -139,11 +184,15 @@ def main(config='config.yml', cls_quality='occluded', visual=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cls_quality', default='')
+    parser.add_argument('--test_root', default='')
+    parser.add_argument('--name_folder', default='no_name')
     parser.add_argument('--config', default='config.yml')
-    parser.add_argument('--visual', '-v', default=False, action='store_true')
+    parser.add_argument('--chart', '-c', default=False, action='store_true')
+    parser.add_argument('--metric', '-m', default=False, action='store_true')
     args = parser.parse_args()
 
-    main(cls_quality=args.cls_quality, 
-         visual=args.visual,
-         config=args.config)
+    main(test_root=args.test_root,
+         name_folder=args.name_folder,
+         chart=args.chart,
+         config=args.config,
+         metric=args.metric)

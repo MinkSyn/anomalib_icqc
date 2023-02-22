@@ -1,16 +1,11 @@
 import os
 import torch
-from typing import Optional
+
 from PIL import Image
 from torch.utils.data import Dataset
-from torchvision import transforms as T
+
 from const import image_transform, mask_transform
-
-
-
-def allowed_file(filename):
-    return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
-
+from tool import allowed_file
 
 class AnoDataset(Dataset):
 
@@ -54,9 +49,9 @@ class AnoDataset(Dataset):
         if self.mask_directory_path is not None:
             mask = Image.open(self.mask_paths[idx])
             mask = self.mask_transforms(mask)
-            image_classification = 0
+            image_classification = 1
         else:
             mask = torch.zeros([1, image.shape[1], image.shape[2]])
-            image_classification = 1
+            image_classification = 0
 
         return image, image_classification, mask

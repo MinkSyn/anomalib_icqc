@@ -13,6 +13,7 @@ class PatchcoreModel(nn.Module):
     def __init__(self,
                  input_size,
                  layers,
+                 method_dis,
                  backbone = "wide_resnet50_2",
                  pre_trained = True,
                  training = False,
@@ -26,6 +27,7 @@ class PatchcoreModel(nn.Module):
         
         self.training = training
         
+        self.method_dis = method_dis
         self.num_neighbors = num_neighbors
 
         self.feature_extractor = TimmFeatureExtractor(backbone=self.backbone, 
@@ -117,6 +119,12 @@ class PatchcoreModel(nn.Module):
         embedding_size = embedding.size(1)
         embedding = embedding.permute(0, 2, 3, 1).reshape(-1, embedding_size)
         return embedding
+    
+    def calculate_distance(self, input_embedding, embedding_coreset):
+        if self.method_dis == 'euclidean':
+            distances = torch.cdist(input_embedding, embedding_coreset, p=2.0)
+            
+        return distances
 
     def nearest_neighbors(self, input_embedding, embedding_coreset, n_neighbors):
         """Nearest Neighbours using brute force method and euclidean norm.
@@ -127,7 +135,7 @@ class PatchcoreModel(nn.Module):
             Tensor: Patch scores.
             Tensor: Locations of the nearest neighbor(s).
         """
-        distances = torch.cdist(input_embedding, embedding_coreset, p=2.0)  # euclidean norm
+        distances = self.calculate_distance(input_embedding, embedding_coreset)  # euclidean norm
         if n_neighbors == 1:
             # when n_neighbors is 1, speed up computation by using min instead of topk
             patch_scores, locations = distances.min(1)
@@ -161,7 +169,7 @@ class PatchcoreModel(nn.Module):
         # indices of N_b(m^*) in the paper
         _, support_samples = self.nearest_neighbors(nn_sample, embedding_coreset, n_neighbors=self.num_neighbors)
         # 4. Find the distance of the patch features to each of the support samples
-        distances = torch.cdist(max_patches_features.unsqueeze(1), embedding_coreset[support_samples], p=2.0)
+        distances = self.calculate_distance(max_patches_features.unsqueeze(1), embedding_coreset[support_samples])
         # 5. Apply softmax to find the weights
         weights = (1 - F.softmax(distances.squeeze(1), 1))[..., 0]
         # 6. Apply the weight factor to the score
@@ -175,7 +183,8 @@ def build_model(cfg, training):
                            backbone=cfg['feature']['arch'],
                            pre_trained=cfg['feature']['pretrained'],
                            training=training,
-                           num_neighbors=cfg['hyper']['num_neighbors'],)
+                           num_neighbors=cfg['hyper']['num_neighbors'],
+                           method_dis=cfg['hyper']['distance'],)
 
     return model
 

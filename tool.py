@@ -1,12 +1,20 @@
 import os
+from typing import Tuple, Any
 
 import torch
+
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import precision_recall_curve
 
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 
 from const import image_transform
+
+def allowed_file(filename):
+    return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
 
 def verify_device(device):
     if device != 'cpu' and torch.cuda.is_available():
@@ -53,3 +61,37 @@ def infer_transform(images, device):
 
     return batch.to(device)
 
+def visualize_eval(target, prediction, save_path):
+    score = roc_auc_score(target, prediction)
+
+    precision, recall, threshold = optimal_threshold(target, prediction)
+    res = {
+        'ROC': score,
+        'Precision': precision,
+        'Recall': recall, 
+        'Threshold_auto': threshold,
+    }
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 4))
+
+    fpr, tpr, thresholds = roc_curve(target, prediction)
+    axes[0].plot(fpr, tpr)
+    axes[0].title.set_text('ROC Curve (tpr-fpr)')
+
+    axes[1].plot(thresholds, fpr)
+    axes[1].plot(thresholds, tpr, color='red')
+    axes[1].axvline(x=threshold, color='yellow')
+    axes[1].grid()
+    axes[1].title.set_text('fpr/tpr - thresh')
+
+    plt.save(save_path)
+    
+    return res
+
+
+def optimal_threshold(target, prediction):
+    precision, recall, thresholds = precision_recall_curve(target.flatten(), prediction.flatten())
+    a = 2 * precision * recall
+    b = precision + recall
+    f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)
+    idx = np.argmax(f1)
+    return precision[idx], recall[idx], thresholds[idx]
