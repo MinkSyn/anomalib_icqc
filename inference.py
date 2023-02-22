@@ -119,7 +119,9 @@ class Inference:
             else:
                 raise Exception(f'Not exist label: {test_dir[1][idx]}')
             
-            for name in name_imgs:
+            logger.info(f'Load data from: {test_dir[0][idx]}')
+            logger.info(f'Label: {test_dir[1][idx]}, ID: {label}')
+            for name in tqdm(name_imgs):
                 img_path = os.path.join(test_dir, name)
                 image = cv2.imread(img_path)
                 image = cv2.resize(image, IMG_SIZE)
