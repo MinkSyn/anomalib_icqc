@@ -183,7 +183,7 @@ def main(config, test_root, name_folder, chart, metric):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test_root', default='')
+    parser.add_argument('--test_root', default=None)
     parser.add_argument('--name_folder', default='no_name')
     parser.add_argument('--config', default='config.yml')
     parser.add_argument('--chart', '-c', default=False, action='store_true')
