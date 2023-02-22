@@ -61,7 +61,8 @@ class Inference:
                     logger.info(f'Not exits class {cls_name}')
                     continue
                 elif coreset:
-                    test_dir = [(os.path.join(self.data_root, cls_name, 'good')), ('normal')]
+                    test_dir = {'path': os.path.join(self.data_root, cls_name, 'good'), 
+                                'label': 'normal'}
                 else:
                     test_dir = test_root[cls_name]
                     
@@ -69,7 +70,7 @@ class Inference:
                 
                 outputs = self.predict_card(embedding_coreset, test_dir, cls_name)
                 results[cls_name] = outputs
-                logger.info('-'*20)
+                logger.info('-'*50)
 
             with open(result_path, 'w') as g:
                 json.dump(results, g, indent=4)
