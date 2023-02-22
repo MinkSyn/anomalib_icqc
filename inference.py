@@ -57,16 +57,15 @@ class Inference:
             results = {}
             logger.info(f"The name of test folder: {name_folder}")
             for cls_name in self.cls_card:
-                if coreset:
-                    test_dir = [(os.path.join(self.data_root, cls_name, 'good')), ('normal')]
-                elif cls_name not in test_root.keys():
+                if cls_name not in test_root.keys():
                     logger.info(f'Not exits class {cls_name}')
                     continue
+                elif coreset:
+                    test_dir = [(os.path.join(self.data_root, cls_name, 'good')), ('normal')]
                 else:
                     test_dir = test_root[cls_name]
                     
                 embedding_coreset = self.load_coreset(cls_name=cls_name)
-                logger.info(f'Inference: [{cls_name}]')
                 
                 outputs = self.predict_card(embedding_coreset, test_dir, cls_name)
                 results[cls_name] = outputs
@@ -87,13 +86,14 @@ class Inference:
         dataloader = self.get_loader(test_dir)
         
         outputs = []
+        logger.info(f'Inference: [{cls_name}]')
         for batch in tqdm(dataloader):
             lst_imgs = batch[0].numpy()
             lst_paths = batch[1]
             lst_names = batch[2]
             lst_labels = batch[3]
             ano_batch = infer_transform(lst_imgs, self.device)
-            anomaly_map, anomaly_score = self.model(ano_batch, embedding_coreset)
+            _, anomaly_score = self.model(ano_batch, embedding_coreset)
             pred = binary_classify(anomaly_score, self.thresh[cls_name])
         
             for idx in range(len(lst_imgs)):

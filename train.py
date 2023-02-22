@@ -61,7 +61,7 @@ class Trainer:
             logger.info(f'Embedding {cls_name}')
             
             for idx, batch in enumerate(tqdm(dataloader[cls_name])): 
-                images, labels, mask = batch
+                images, _, _ = batch
                 images = images.to(self.device)
                 embedding = self.model(images, embedding_coreset=None)
                 if idx == 0:
