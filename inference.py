@@ -102,7 +102,7 @@ class Inference:
                                 'label': nameAno[int(lst_labels[idx])],
                                 'pred': nameAno[int(pred[idx])],
                                 'prob': round(float(anomaly_score[idx]), 4),
-                                'map': anomaly_map[idx],
+#                                 'map': anomaly_map[idx],
                                 })
         return outputs
     
