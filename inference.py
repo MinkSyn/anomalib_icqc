@@ -42,7 +42,10 @@ class Inference:
         self.thresh = cfg['thresh']
         self.embed_path = os.path.join(cfg['embedding_path'], f"run{cfg['run']}")         
 
-    def predict(self, test_root, name_folder=None, metric=False, chart=False, coreset=False):
+    def predict(self, test_root=None, name_folder=None, metric=False, chart=False, coreset=False):
+        if test_root is None:
+            test_root = self.test_root
+        
         os.makedirs(os.path.join(self.out_root, name_folder), exist_ok=True)
         result_path = os.path.join(self.out_root, name_folder, f"{self.run_name}.json")
         
@@ -164,10 +167,6 @@ class Inference:
             
             
 def main(config, test_root, name_folder, chart, metric):
-    '''
-        test_root: list( tuple(paths or path) ,tuple(bool for labels) )
-        Ex: test_root = [('./test/occluded', './test/sharp'), (True, False)]
-    '''
     cfg = Config.load_yaml(config)
     infer = Inference(cfg)
     
