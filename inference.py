@@ -61,8 +61,8 @@ class Inference:
                     logger.info(f'Not exits class {cls_name}')
                     continue
                 elif coreset:
-                    test_dir = {'path': os.path.join(self.data_root, cls_name, 'good'), 
-                                'label': 'normal'}
+                    test_dir = {'path': [os.path.join(self.data_root, cls_name, 'good')], 
+                                'label': ['normal']}
                 else:
                     test_dir = test_root[cls_name]
                     
