@@ -117,10 +117,10 @@ class Inference:
             elif test_dir['label'][idx] == 'normal':
                 label = 0
             else:
-                raise Exception(f'Not exist label: {test_dir['label'][idx]}')
+                raise Exception(f"Not exist label: {test_dir['label'][idx]}")
             
-            logger.info(f'Load data from: {test_dir['path'][idx]}')
-            logger.info(f'Label: {test_dir['label'][idx]}, ID: {label}')
+            logger.info(f"Load data from: {test_dir['path'][idx]}")
+            logger.info(f"Label: {test_dir['label'][idx]}, ID: {label}")
             for name in tqdm(name_imgs):
                 img_path = os.path.join(test_dir, name)
                 image = cv2.imread(img_path)
