@@ -68,7 +68,7 @@ class Inference:
                 embedding_coreset = self.load_coreset(cls_name=cls_name)
                 logger.info(f'Inference: [{cls_name}]')
                 
-                outputs = self.predict_card(embedding_coreset, test_dir, cls_name)
+                outputs = self.predict_card(embedding_coreset, test_dir[cls_name], cls_name)
                 results[cls_name] = outputs
                 logger.info('-'*20)
 
