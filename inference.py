@@ -137,8 +137,8 @@ class Inference:
         for cls_name in results.keys():
             target, prediction = [], []
             for idx in range(len(results[cls_name])):
-                target.append(AnomalyID[results[cls_name][idx]['label']])
-                prediction.append(AnomalyID[results[cls_name][idx]['pred']])
+                target.append(AnomalyID[results[cls_name][idx]['label']].value)
+                prediction.append(AnomalyID[results[cls_name][idx]['pred']].value)
             res_metric = visualize_eval(target, prediction, save_path)
             res_metric['Threshold_config'] = self.threshold[cls_name]
             df = pd.DataFrame.from_dict(res_metric)
