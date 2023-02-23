@@ -62,17 +62,17 @@ def infer_transform(images, device):
     return batch.to(device)
 
 def visualize_eval(target, prediction, save_path):
-    # score = roc_auc_score(target, prediction)
     target = np.array(target)
     prediction = np.array(prediction)
+    score = roc_auc_score(target, prediction)
     precision, recall, threshold = optimal_threshold(target, prediction)
     res = {
-        # 'ROC': score,
+        'ROC': score,
         'Precision': precision,
         'Recall': recall, 
         'Threshold_auto': threshold,
     }
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 4))
+    _, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 4))
 
     fpr, tpr, thresholds = roc_curve(target, prediction)
     axes[0].plot(fpr, tpr)
