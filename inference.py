@@ -139,10 +139,10 @@ class Inference:
             target, prediction = [], []
             for idx in range(len(results_test[cls_name])):
                 target.append(AnomalyID[results_test[cls_name][idx]['label']].value)
-                prediction.append(AnomalyID[results_test[cls_name][idx]['pred']].value)
+                prediction.append(results_test[cls_name][idx]['prob'])
             for idx in range(len(results_train[cls_name])):
                 target.append(AnomalyID[results_train[cls_name][idx]['label']].value)
-                prediction.append(AnomalyID[results_train[cls_name][idx]['pred']].value)
+                prediction.append(results_train[cls_name][idx]['prob'])
             res_metric = visualize_eval(target, prediction, save_path)
             res_metric['threshold_config'] = self.thresh[cls_name]
             df = pd.DataFrame([res_metric])
