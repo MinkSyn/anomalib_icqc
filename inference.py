@@ -136,14 +136,16 @@ class Inference:
         save_path = os.path.join(self.out_root, name_test_dir, 'ROC_Curve.jpg')
         
         for cls_name in results_test.keys():
-            target, prediction = [], []
+            target, prediction, prob = [], [], []
             for idx in range(len(results_test[cls_name])):
                 target.append(AnomalyID[results_test[cls_name][idx]['label']].value)
-                prediction.append(results_test[cls_name][idx]['prob'])
+                prediction.append(AnomalyID[results_test[cls_name][idx]['pred']].value)
+                prob.append(results_test[cls_name][idx]['prob'])
             for idx in range(len(results_train[cls_name])):
                 target.append(AnomalyID[results_train[cls_name][idx]['label']].value)
-                prediction.append(results_train[cls_name][idx]['prob'])
-            res_metric = visualize_eval(target, prediction, save_path)
+                prediction.append(AnomalyID[results_train[cls_name][idx]['pred']].value)
+                prob.append(results_train[cls_name][idx]['prob'])
+            res_metric = visualize_eval(target, prediction, prob, save_path)
             res_metric['threshold_config'] = self.thresh[cls_name]
             df = pd.DataFrame([res_metric])
             logger.info(f'Metrics of {cls_name}')
