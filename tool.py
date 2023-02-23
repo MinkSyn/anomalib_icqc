@@ -62,11 +62,10 @@ def infer_transform(images, device):
     return batch.to(device)
 
 def visualize_eval(target, prediction, save_path):
-    score = roc_auc_score(target, prediction)
-
+    # score = roc_auc_score(target, prediction)
     precision, recall, threshold = optimal_threshold(target, prediction)
     res = {
-        'ROC': score,
+        # 'ROC': score,
         'Precision': precision,
         'Recall': recall, 
         'Threshold_auto': threshold,

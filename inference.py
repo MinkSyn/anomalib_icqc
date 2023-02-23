@@ -151,7 +151,12 @@ class Inference:
 
         for cls_name in results_test.keys():
             train_score = [results_train[cls_name][idx]['prob'] for idx in range(len(results_train[cls_name]))]
-            test_score = [results_test[cls_name][idx]['prob'] for idx in range(len(results_test[cls_name]))]
+            test_score = []
+            for idx in range(len(results_test[cls_name])):
+                if results_test[cls_name][idx]['label'] == 'anomaly':
+                    test_score.append(results_test[cls_name][idx]['prob'])
+                else:
+                    train_score.append(results_test[cls_name][idx]['prob'])
             lst_score = [train_score, test_score]
             name_image = f"{cls_name}.jpg"
             draw_chart(scores=lst_score,
