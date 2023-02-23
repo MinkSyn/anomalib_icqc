@@ -84,8 +84,8 @@ def visualize_eval(target, prediction, save_path):
     axes[1].grid()
     axes[1].title.set_text('fpr/tpr - thresh')
 
-    plt.save(save_path)
-    
+    plt.savefig(save_path, transparent=True)
+    plt.close()
     return res
 
 
