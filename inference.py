@@ -140,8 +140,8 @@ class Inference:
                 target.append(AnomalyID[results[cls_name][idx]['label']].value)
                 prediction.append(AnomalyID[results[cls_name][idx]['pred']].value)
             res_metric = visualize_eval(target, prediction, save_path)
-            res_metric['Threshold_config'] = self.thresh[cls_name]
-            df = pd.DataFrame.from_dict(res_metric)
+            res_metric['threshold_config'] = self.thresh[cls_name]
+            df = pd.DataFrame([res_metric])
             logger.info(f'Metrics of {cls_name}')
             logger.info(df) 
             
