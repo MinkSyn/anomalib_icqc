@@ -19,7 +19,10 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
                  backbone = "wide_resnet50_2",
                  pre_trained = True,
                  training = False,
-                 num_neighbors = 9):
+                 eps = 0.9,
+                 seed = 101,
+                 sampling_ratio = 0.1,
+                 num_neighbors = 9.):
         super().__init__()
         self.tiler = None
 
@@ -31,6 +34,10 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         
         self.method_dis = method_dis
         self.num_neighbors = num_neighbors
+        
+        self.sampling_ratio = sampling_ratio
+        self.eps = eps
+        self.seed = seed
 
         self.feature_extractor = TimmFeatureExtractor(backbone=self.backbone, 
                                                   pre_trained=pre_trained, 
@@ -130,7 +137,10 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         """
 
         # Coreset Subsampling
-        sampler = KCenterGreedy(embedding=embedding, sampling_ratio=sampling_ratio)
+        sampler = KCenterGreedy(embedding=embedding, 
+                                sampling_ratio=self.sampling_ratio,
+                                eps=self.eps,
+                                seed=self.seed)
         coreset = sampler.sample_coreset()
         self.memory_bank = coreset
 
@@ -198,6 +208,9 @@ def build_model(cfg, training):
                            backbone=cfg['feature']['arch'],
                            pre_trained=cfg['feature']['pretrained'],
                            training=training,
+                           eps=cfg['para']['eps'],
+                           seed=cfg['para']['seed'],
+                           sampling_ratio=cfg['hyper']['ratio'],
                            num_neighbors=cfg['hyper']['num_neighbors'],
                            method_dis=cfg['hyper']['distance'],)
 

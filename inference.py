@@ -10,7 +10,6 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from patchcore.datasets import AnoDataset
 from patchcore.model import build_model
 from patchcore.sampling_methods.kcenter import KCenterGreedy
 from config import Config
