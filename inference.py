@@ -177,12 +177,12 @@ class Inference:
             raise Exception(f'Not exits embedding of {cls_name}')
         embedding = torch.load(embedding_path)
         
-        sampler = KCenterGreedy(embedding=embedding, 
-                                sampling_ratio=self.sampling_ratio,
-                                eps=self.eps,
-                                seed=self.seed)
-        coreset = sampler.sample_coreset()
-        return coreset
+        # sampler = KCenterGreedy(embedding=embedding, 
+        #                         sampling_ratio=self.sampling_ratio,
+        #                         eps=self.eps,
+        #                         seed=self.seed)
+        # coreset = sampler.sample_coreset()
+        return embedding#coreset
             
             
 def main(config, test_root, name_folder, chart, metric):

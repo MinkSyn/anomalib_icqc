@@ -7,9 +7,11 @@ from torch import Tensor, nn
 from patchcore.backbone import TimmFeatureExtractor
 from patchcore.components.anomaly_map import AnomalyMapGenerator
 from patchcore.components.pre_process import Tiler
+from patchcore.components.dynamic_module import DynamicBufferModule
+from patchcore.sampling_methods.kcenter import KCenterGreedy
 
 
-class PatchcoreModel(nn.Module):
+class PatchcoreModel(DynamicBufferModule, nn.Module):
     def __init__(self,
                  input_size,
                  layers,
@@ -119,6 +121,19 @@ class PatchcoreModel(nn.Module):
         embedding_size = embedding.size(1)
         embedding = embedding.permute(0, 2, 3, 1).reshape(-1, embedding_size)
         return embedding
+    
+    def subsample_embedding(self, embedding: Tensor, sampling_ratio: float) -> None:
+        """Subsample embedding based on coreset sampling and store to memory.
+        Args:
+            embedding (np.ndarray): Embedding tensor from the CNN
+            sampling_ratio (float): Coreset sampling ratio
+        """
+
+        # Coreset Subsampling
+        sampler = KCenterGreedy(embedding=embedding, sampling_ratio=sampling_ratio)
+        coreset = sampler.sample_coreset()
+        self.memory_bank = coreset
+
     
     def calculate_distance(self, input_embedding, embedding_coreset):
         if self.method_dis == 'euclidean':
