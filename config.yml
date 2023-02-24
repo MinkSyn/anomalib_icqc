@@ -24,6 +24,10 @@ feature:
   layer: [layer2, layer3]
   pretrained: True
 
+para:
+  eps: 0.9
+  seed: 35
+
 hyper:
   num_neighbors: 9
   ratio: 0.1

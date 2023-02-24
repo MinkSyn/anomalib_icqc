@@ -39,6 +39,8 @@ class Inference:
         
         self.batch_size = cfg['batch_size']
         self.sampling_ratio = cfg['hyper']['ratio']
+        self.eps = cfg['para']['eps']
+        self.seed = cfg['para']['seed']
         self.thresh = cfg['thresh']
         self.embed_path = os.path.join(cfg['embedding_path'], f"run{cfg['run']}")         
 
@@ -175,7 +177,10 @@ class Inference:
             raise Exception(f'Not exits embedding of {cls_name}')
         embedding = torch.load(embedding_path)
         
-        sampler = KCenterGreedy(embedding=embedding, sampling_ratio=self.sampling_ratio)
+        sampler = KCenterGreedy(embedding=embedding, 
+                                sampling_ratio=self.sampling_ratio,
+                                eps=self.eps,
+                                seed=self.seed)
         coreset = sampler.sample_coreset()
         return coreset
             
