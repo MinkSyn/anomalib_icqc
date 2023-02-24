@@ -1,8 +1,8 @@
 from enum import Enum
 from torchvision import transforms as T
 
-
-IMG_SIZE = (256, 384)
+IMG_SIZE = (300, 450)
+# IMG_SIZE = (256, 384)
 # IMG_SIZE = (224, 224)
 
 image_transform = T.Compose([T.Resize(IMG_SIZE),
