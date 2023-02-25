@@ -18,8 +18,8 @@ mask_transform = T.Compose([T.Resize(IMG_SIZE),
                             ])
 
 class AnomalyID(Enum):
-    anomaly = 0
-    normal = 1
+    anomaly = 1
+    normal = 0
 
 class QualityID(Enum):
     blur = 0
