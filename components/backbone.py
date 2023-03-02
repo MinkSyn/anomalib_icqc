@@ -31,7 +31,11 @@ class TimmFeatureExtractor(nn.Module):
             [torch.Size([32, 64, 64, 64]), torch.Size([32, 128, 32, 32]), torch.Size([32, 256, 16, 16])]
     """
 
-    def __init__(self, backbone, layers, pre_trained = True, requires_grad = False):
+    def __init__(self,
+                 backbone,
+                 layers,
+                 pre_trained=True,
+                 requires_grad=False):
         super().__init__()
         self.backbone = backbone
         self.layers = layers
@@ -47,7 +51,7 @@ class TimmFeatureExtractor(nn.Module):
         self.out_dims = self.feature_extractor.feature_info.channels()
         self._features = {layer: torch.empty(0) for layer in self.layers}
 
-    def _map_layer_to_idx(self, offset = 3):
+    def _map_layer_to_idx(self, offset=3):
         """Maps set of layer names to indices of model.
         Args:
             offset (int) `timm` ignores the first few layers when indexing please update offset based on need
@@ -63,7 +67,9 @@ class TimmFeatureExtractor(nn.Module):
         )
         for i in self.layers:
             try:
-                idx.append(list(dict(features.named_children()).keys()).index(i) - offset)
+                idx.append(
+                    list(dict(features.named_children()).keys()).index(i) -
+                    offset)
             except ValueError:
                 warnings.warn(f"Layer {i} not found in model {self.backbone}")
                 # Remove unfound key from layer dict
@@ -83,5 +89,6 @@ class TimmFeatureExtractor(nn.Module):
         else:
             self.feature_extractor.eval()
             with torch.no_grad():
-                features = dict(zip(self.layers, self.feature_extractor(inputs)))
+                features = dict(
+                    zip(self.layers, self.feature_extractor(inputs)))
         return features

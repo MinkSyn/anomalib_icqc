@@ -1,25 +1,40 @@
 import os
-from typing import Tuple, Any
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
+import torchvision.transforms as T
 
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
 from sklearn.metrics import precision_recall_curve
 
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
+from const import AnomalyID
 
-from const import image_transform
-
-def allowed_file(filename):
-    return ("." in filename and filename.rsplit(".", 1)[1].lower() in ["png", "jpg", "jpeg"])
 
 def verify_device(device):
     if device != 'cpu' and torch.cuda.is_available():
         return device
     return 'cpu'
+
+
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
+def is_image_file(filename: str):
+    return filename.lower().endswith(IMG_EXTENSIONS)
+
+def get_img_transform(img_size):
+    transform = T.Compose([T.Resize(img_size),
+                           T.ToTensor(),
+                           T.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])])
+    return transform
+
+def binary_classify(image_scores, thresh):
+    image_classifications = image_scores.clone()
+    image_classifications[image_classifications < thresh] = AnomalyID['normal'].value
+    image_classifications[image_classifications >= thresh] = AnomalyID['abnormal'].value
+    return image_classifications
 
 def draw_chart(scores, save_path=None, name_images=None, step=1, pad=2):
     os.makedirs(f'{save_path}', exist_ok=True)
@@ -31,7 +46,7 @@ def draw_chart(scores, save_path=None, name_images=None, step=1, pad=2):
     
     plt.figure(figsize=(16, 8))
     plt.hist([scores[0], scores[1]], bins=bins, alpha=1,
-                histtype='bar', color=['green', 'blue'], label=['Normal', 'Anomaly'])
+                histtype='bar', color=['green', 'blue'], label=['Normal', 'Abnormal'])
     plt.title(f'Histogram score map')
     plt.xlabel('score')
     plt.ylabel('samples')
@@ -39,32 +54,7 @@ def draw_chart(scores, save_path=None, name_images=None, step=1, pad=2):
     plt.savefig(path_hist, transparent=True)
     plt.close()
 
-def binary_classify(image_scores, thresh):
-    image_classifications = image_scores.clone()
-    image_classifications[image_classifications < thresh] = 0
-    image_classifications[image_classifications >= thresh] = 1
-    return image_classifications
-
-def infer_transform(images, device):
-    assert len(images) > 0
-
-    transformed_images = []
-    for i, image in enumerate(images):
-        image = Image.fromarray(image).convert('RGB')
-        transformed_images.append(image_transform(image))
-
-    height, width = transformed_images[0].shape[1:3]
-    batch = torch.zeros((len(images), 3, height, width))
-
-    for i, transformed_image in enumerate(transformed_images):
-        batch[i] = transformed_image
-
-    return batch.to(device)
-
 def visualize_eval(target, prediction, prob, save_path):
-    target = np.array(target)
-    prediction = np.array(prediction)
-    prob = np.array(prob)
     score = roc_auc_score(target, prediction)
     precision, recall, _ = optimal_threshold(target, prediction)
     _, _, threshold = optimal_threshold(target, prob)
@@ -90,8 +80,10 @@ def visualize_eval(target, prediction, prob, save_path):
     plt.close()
     return res
 
-
 def optimal_threshold(target, prediction):
+    target = np.array(target)
+    prediction = np.array(prediction)
+    
     precision, recall, thresholds = precision_recall_curve(target.flatten(), prediction.flatten())
     a = 2 * precision * recall
     b = precision + recall

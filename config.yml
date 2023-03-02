@@ -1,38 +1,36 @@
 
+run: 1
+
 device: cpu
 
-data_var: RealAD_v2.1
 data_root: D:/datasets/Anodet_ICQC/RealAD_v2.1
-test_root: D:/datasets/Anodet_ICQC/RealAD_v2.1 # dict(cls_card: dict(path: list, label: list))
+test_root: D:/datasets/Anodet_ICQC/RealAD_v2.1
 out_root: E:/anomalib/runs
 embedding_path: E:/anomalib/embedding
 
-run: 1
-batch_size: 32
+icqc2ano:
+  normal: [sharp]
+  abnoraml: [occluded, outofdate, overexposed]
+
+hparams:
+  img_size: [256, 384]
+  batch_size: 32
+  backbone:
+    arch: wide_resnet50_2
+    layer: [layer2, layer3]
+    pretrained: True
+  coreset:
+    seed: 101
+    eps: 0.9
+    ratio: 0.1
+  nn_search:
+    num_neighbors: 9
+    distance: euclidean 
 
 thresh:
   CitizenCardV1_back: 2.4
   CitizenCardV1_front: 2.4
-  CitizenCardV2_back: 2.4
-  CitizenCardV2_front: 2.4
+  CitizenCardV2_back: 52.5
+  CitizenCardV2_front: 48.5
   IdentificationCard_back: 2.4
-  IdentificationCard_front: 2.4
-
-feature:
-  img_size: [256, 364]
-  arch: wide_resnet50_2
-  layer: [layer2, layer3]
-  pretrained: True
-
-para:
-  eps: 0.9
-  seed: 101
-
-hyper:
-  num_neighbors: 9
-  ratio: 0.1
-  distance: euclidean 
-
-info_ver: v1.0
-info:
-  v1.0: origin
+  IdentificationCard_front: 55

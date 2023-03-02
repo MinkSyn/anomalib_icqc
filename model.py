@@ -4,11 +4,10 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from patchcore.backbone import TimmFeatureExtractor
-from patchcore.components.anomaly_map import AnomalyMapGenerator
-from patchcore.components.pre_process import Tiler
-from patchcore.components.dynamic_module import DynamicBufferModule
-from patchcore.sampling_methods.kcenter import KCenterGreedy
+from components.backbone import TimmFeatureExtractor
+from components.anomaly_map import AnomalyMapGenerator
+from components.pre_process import Tiler
+from components.dynamic_module import DynamicBufferModule
 
 
 class PatchcoreModel(DynamicBufferModule, nn.Module):
@@ -16,17 +15,14 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
                  input_size,
                  layers,
                  method_dis,
-                 backbone = "wide_resnet50_2",
-                 pre_trained = True,
-                 training = False,
-                 eps = 0.9,
-                 seed = 101,
-                 sampling_ratio = 0.1,
-                 num_neighbors = 9.):
+                 arch="wide_resnet50_2",
+                 pre_trained=True,
+                 training=False,
+                 num_neighbors=9.):
         super().__init__()
         self.tiler = None
 
-        self.backbone = backbone
+        self.backbone = arch
         self.layers = layers
         self.input_size = input_size
         
@@ -34,21 +30,14 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         
         self.method_dis = method_dis
         self.num_neighbors = num_neighbors
-        
-        self.sampling_ratio = sampling_ratio
-        self.eps = eps
-        self.seed = seed
 
         self.feature_extractor = TimmFeatureExtractor(backbone=self.backbone, 
-                                                  pre_trained=pre_trained, 
-                                                  layers=self.layers)
+                                                      pre_trained=pre_trained, 
+                                                      layers=self.layers)
         
         self.feature_pooler = torch.nn.AvgPool2d(3, 1, 1)
         
         self.anomaly_map_generator = AnomalyMapGenerator(input_size=input_size)
-
-        self.register_buffer("memory_bank", Tensor())
-        self.memory_bank = None
 
     def forward(self, input_tensor, embedding_coreset):
         """Return Embedding during training, or a tuple of anomaly map and anomaly score during testing.
@@ -128,21 +117,6 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         embedding_size = embedding.size(1)
         embedding = embedding.permute(0, 2, 3, 1).reshape(-1, embedding_size)
         return embedding
-    
-    def subsample_embedding(self, embedding: Tensor, sampling_ratio: float) -> None:
-        """Subsample embedding based on coreset sampling and store to memory.
-        Args:
-            embedding (np.ndarray): Embedding tensor from the CNN
-            sampling_ratio (float): Coreset sampling ratio
-        """
-
-        # Coreset Subsampling
-        sampler = KCenterGreedy(embedding=embedding, 
-                                sampling_ratio=self.sampling_ratio,
-                                eps=self.eps,
-                                seed=self.seed)
-        coreset = sampler.sample_coreset()
-        self.memory_bank = coreset
 
     
     def calculate_distance(self, input_embedding, embedding_coreset):
@@ -200,21 +174,3 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         # 6. Apply the weight factor to the score
         score = weights * score  # s in the paper
         return score
-    
-    
-def build_model(cfg, training):
-    model = PatchcoreModel(input_size=cfg['feature']['img_size'],
-                           layers=cfg['feature']['layer'],
-                           backbone=cfg['feature']['arch'],
-                           pre_trained=cfg['feature']['pretrained'],
-                           training=training,
-                           eps=cfg['para']['eps'],
-                           seed=cfg['para']['seed'],
-                           sampling_ratio=cfg['hyper']['ratio'],
-                           num_neighbors=cfg['hyper']['num_neighbors'],
-                           method_dis=cfg['hyper']['distance'],)
-
-    return model
-
-if __name__ == '__main__':
-    model = build_model()
