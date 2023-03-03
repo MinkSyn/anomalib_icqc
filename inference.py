@@ -69,7 +69,7 @@ class AnoInference:
             img = img.to(self.device)
             return img
         elif isinstance(input, list):
-            imgs = [self._preprocess(i) for i in input]
-            return torch.cat(imgs, dim=0)
+            imgs = input.to(self.device)
+            return imgs
         else:
             raise NotImplementedError

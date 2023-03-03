@@ -97,7 +97,7 @@ class VisualAno:
             dataset = AnoDataset(root=test_dir,
                                  split='test',
                                  icqc2ano=self.icqc2ano,
-                                 transforms=None)
+                                 transforms=self.transforms)
             dataloader = DataLoader(dataset, batch_size=self.batch_size)
 
             for batch in tqdm(dataloader):
