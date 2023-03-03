@@ -94,7 +94,7 @@ class VisualAno:
         outputs = {}
         for card_type in self.cls_cards:
             outputs[card_type] = []
-            for batch in tqdm(dataloader):
+            for batch in tqdm(dataloader[card_type]):
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
                 
