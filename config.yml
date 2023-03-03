@@ -9,8 +9,16 @@ out_root: E:/anomalib/runs
 embedding_path: E:/anomalib/embedding
 
 icqc2ano:
-  normal: [sharp]
-  abnoraml: [occluded, outofdate, overexposed]
+  normal: 
+    - sharp
+  abnormal: 
+    - occluded 
+    - outofdate  
+    - overexposed
+    - lowquality
+    - blur
+    - shadow
+    # - overclosed
 
 hparams:
   img_size: [256, 384]

@@ -42,7 +42,7 @@ class Embedding:
                                )
         self.model = model.to(self.device)
         
-        self.transform = get_img_transform(cfg['hparams']['img_size'])
+        self.transforms = get_img_transform(cfg['hparams']['img_size'])
         self.hp_core = cfg['hparams']['coreset']
         self.batch_size = cfg['hparams']['batch_size']
         
@@ -71,7 +71,7 @@ class Embedding:
             dataset = AnoDataset(root=data_dir,
                                  split=split,
                                  icqc2ano=self.icqc2ano,
-                                 transforms=self.transform)
+                                 transforms=self.transforms)
             
             dataloader[card_type] = DataLoader(dataset, 
                                               batch_size=self.batch_size
@@ -126,8 +126,7 @@ class Embedding:
             result_path = os.path.join(self.out_root, f"{self.run_name}__{card_type}.pt")
             save_results = {'train': result_train,
                             'test': result_test}
-            torch.save(save_results, result_path)
-            
+            torch.save(save_results, result_path)     
             
     def inference_one_card(self, dataloader, card_type):
         output = []
@@ -142,7 +141,6 @@ class Embedding:
                                'score': round(float(scores[idx]), 4),
                                })
         return output
-            
         
     def fit(self):
         # Create embedding coreset and save into self.coresets

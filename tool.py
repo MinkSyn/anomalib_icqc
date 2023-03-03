@@ -24,11 +24,11 @@ def is_image_file(filename: str):
     return filename.lower().endswith(IMG_EXTENSIONS)
 
 def get_img_transform(img_size):
-    transform = T.Compose([T.Resize(img_size),
+    transforms = T.Compose([T.Resize(img_size),
                            T.ToTensor(),
                            T.Normalize(mean=[0.485, 0.456, 0.406],
                                         std=[0.229, 0.224, 0.225])])
-    return transform
+    return transforms
 
 def binary_classify(image_scores, thresh):
     image_classifications = image_scores.clone()

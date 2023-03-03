@@ -5,7 +5,7 @@ from PIL import Image
 import numpy as np
 
 from model import PatchcoreModel
-from tool import verify_device, is_image_file, get_img_transform 
+from tool import verify_device, is_image_file, get_img_transform, binary_classify
 from const import AnomalyID
 
 
@@ -45,6 +45,17 @@ class AnoInference:
             return AnomalyID['abnormal'].value
         return AnomalyID['normal'].value
         
+    def predict_batch(self, inputs, card_type, threshold=None):
+        if threshold is None:
+            threshold = self.threshs[card_type]
+        if card_type not in self.cls_cards:
+            raise Exception(f'Not exist class card: {card_type}')
+        
+        inputs = self._preprocess(inputs)
+        _, scores = self.model(inputs, self.coresets[card_type])
+        preds = binary_classify(scores, threshold)
+        return preds, scores
+        
     def _preprocess(self, input):
         if isinstance(input, str): 
             assert is_image_file(input), f"{input} is not an image."
@@ -57,5 +68,8 @@ class AnoInference:
             img = img.unsqueeze(0)
             img = img.to(self.device)
             return img
+        elif isinstance(input, list):
+            imgs = [self._preprocess(i) for i in input]
+            return torch.cat(imgs, dim=0)
         else:
             raise NotImplementedError
