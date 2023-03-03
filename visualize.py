@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from config import Config
-from tool import verify_device, visualize_eval, draw_chart
+from tool import verify_device, visualize_eval, draw_chart, get_img_transform
 from const import AnomalyID
 from datasets import AnoDataset
 from inference import AnoInference
@@ -29,6 +29,7 @@ class VisualAno:
         
         self.icqc2ano = cfg['icqc2ano']
         self.batch_size = cfg['hparams']['batch_size']
+        self.transforms = get_img_transform(cfg['hparams']['img_size'])
         
         self.embedded_path = os.path.join(cfg['embedding_path'], f"{self.run_name}.pt")
         ckpt = self.get_config(self.embedded_path)
@@ -96,7 +97,7 @@ class VisualAno:
             dataset = AnoDataset(root=test_dir,
                                  split='test',
                                  icqc2ano=self.icqc2ano,
-                                 transforms=None)
+                                 transforms=self.transforms)
             dataloader = DataLoader(dataset, batch_size=self.batch_size)
 
             for batch in tqdm(dataloader):
