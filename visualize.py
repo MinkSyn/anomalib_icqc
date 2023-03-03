@@ -89,6 +89,11 @@ class VisualAno:
         for card_type in self.cls_cards:
             outputs[card_type] = []
             test_dir = os.path.join(test_root, card_type)
+            
+            if not os.path.exists(test_dir):
+                logger.info(f'Not exists path for {card_type}')
+                continue
+                
             dataset = AnoDataset(root=test_dir,
                                  split='test',
                                  icqc2ano=self.icqc2ano,
