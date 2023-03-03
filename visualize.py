@@ -87,19 +87,22 @@ class VisualAno:
     def inference_test(self, test_root):
         outputs = {}
         for card_type in self.cls_cards:
-            outputs[card_type] = []
             test_dir = os.path.join(test_root, card_type)
             
             if not os.path.exists(test_dir):
                 logger.info(f'Not exists path for {card_type}')
                 continue
-                
+            
+            outputs[card_type] = []
             dataset = AnoDataset(root=test_dir,
                                  split='test',
                                  icqc2ano=self.icqc2ano,
                                  transforms=None)
+            for i in dataset:
+                print(i)
+                break
             dataloader = DataLoader(dataset, self.batch_size)
-            
+            print(len(dataloader.dataset))
             for batch in tqdm(dataloader):
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
