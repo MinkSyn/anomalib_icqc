@@ -114,6 +114,7 @@ class VisualAno:
                                                'pred': int(preds[idx]),
                                                'score': round(float(scores[idx]), 4),
                                                })
+        self.cls_cards = outputs.keys()
         self.results_test = outputs
         
              
