@@ -109,7 +109,7 @@ class VisualAno:
                 for idx in range(len(lst_imgs)):
                     outputs[card_type].append({'path': lst_paths[idx],
                                                'label': lst_targets[idx],
-                                               'pred': preds[idx],
+                                               'pred': int(preds[idx][0]),
                                                'score': round(float(scores[idx]), 4),
                                                })
         self.results_test = outputs
