@@ -98,12 +98,9 @@ class VisualAno:
                                  split='test',
                                  icqc2ano=self.icqc2ano,
                                  transforms=None)
-            for i in dataset:
-                print(i)
-                break
-            dataloader = DataLoader(dataset, self.batch_size)
-            print(len(dataloader.dataset))
-            for batch in tqdm(dataloader):
+            dataloaders = DataLoader(dataset, self.batch_size)
+
+            for batch in tqdm(dataloaders):
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
                 
