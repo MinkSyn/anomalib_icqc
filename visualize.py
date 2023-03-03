@@ -100,7 +100,7 @@ class VisualAno:
                                  transforms=None)
             dataloader = DataLoader(dataset, self.batch_size)
             
-            for batch in tqdm(dataloader[card_type]):
+            for batch in tqdm(dataloader):
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
                 
