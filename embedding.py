@@ -77,8 +77,7 @@ class Embedding:
                                               batch_size=self.batch_size
                                               )
             data_info[card_type] = len(dataloader[card_type].dataset)
-        df = pd.DataFrame([data_info])
-        print(df)
+        print(pd.DataFrame({'samples': data_info.values()}, index=data_info.keys()))
         return dataloader
     
     def embedding_coreset(self):        
