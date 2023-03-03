@@ -51,7 +51,6 @@ class AnoInference:
         if card_type not in self.cls_cards:
             raise Exception(f'Not exist class card: {card_type}')
         
-        inputs = self._preprocess(inputs)
         _, scores = self.model(inputs, self.coresets[card_type])
         preds = binary_classify(scores, threshold)
         return preds, scores
@@ -68,10 +67,5 @@ class AnoInference:
             img = img.unsqueeze(0)
             img = img.to(self.device)
             return img
-        elif isinstance(input, list):
-            imgs = input.to(self.device)
-            return imgs
-            # imgs = [self._preprocess(i) for i in input]
-            # return torch.cat(imgs, dim=0)
         else:
             raise NotImplementedError

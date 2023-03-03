@@ -104,7 +104,7 @@ class VisualAno:
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
                 
-                preds, scores = self.infer.predict_batch(lst_imgs, self.coresets[card_type])
+                preds, scores = self.infer.predict_batch(lst_imgs, card_type)
                 
                 for idx in range(len(lst_imgs)):
                     outputs[card_type].append({'path': lst_paths[idx],
