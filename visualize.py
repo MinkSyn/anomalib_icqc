@@ -99,7 +99,9 @@ class VisualAno:
                                  icqc2ano=self.icqc2ano,
                                  transforms=self.transforms)
             dataloader = DataLoader(dataset, batch_size=self.batch_size)
+            logger.info(f"Number of samples of {card_type}: {len(dataloader.dataset)}")
 
+            logger.info(f"Inference: {card_type}")
             for batch in tqdm(dataloader):
                 lst_imgs, lst_paths, lst_targets = batch
                 lst_imgs = lst_imgs.to(self.device)
