@@ -116,7 +116,7 @@ class VisualAno:
                                                })
         self.cls_cards = outputs.keys()
         self.results_test = outputs
-        
+        self.threshs = self.cfg['thresh']
              
     def visualize_metric(self):
         save_path = os.path.join(self.out_root, 'ROC_Curve.jpg')
