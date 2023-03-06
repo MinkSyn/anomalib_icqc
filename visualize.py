@@ -153,7 +153,7 @@ class VisualAno:
             lst_score = [train_score, test_score]
             
             draw_chart(scores=lst_score,
-                       save_path=save_path,
+                       save_path=self.out_root,
                        name_images=name_image) 
             
     def pipeline(self, test_root, num_samples, chart, metric):
