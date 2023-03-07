@@ -45,22 +45,24 @@ class TimmFeatureExtractor(nn.Module):
                                                     pretrained=pre_trained)
         self.out_dims = self.feature_extractor.feature_info.channels()
         self._features = {layer: torch.empty(0) for layer in self.layers}
-        
+
     def _get_backbone(self, backbone, pretrained):
         if isinstance(pretrained, bool):
-            feature = timm.create_model(backbone,
-                                         pretrained=pretrained,
-                                         features_only=True,
-                                         exportable=True,
-                                         out_indices=self.idx,
-                                         )
+            feature = timm.create_model(
+                backbone,
+                pretrained=pretrained,
+                features_only=True,
+                exportable=True,
+                out_indices=self.idx,
+            )
         elif isinstance(pretrained, str):
-            feature = timm.create_model(backbone,
-                                         pretrained=False,
-                                         features_only=True,
-                                         exportable=True,
-                                         out_indices=self.idx,
-                                         )
+            feature = timm.create_model(
+                backbone,
+                pretrained=False,
+                features_only=True,
+                exportable=True,
+                out_indices=self.idx,
+            )
             model_state = torch.load(pretrained, map_location="cpu")
             # print(model_state.keys())
             # exit()
@@ -71,11 +73,12 @@ class TimmFeatureExtractor(nn.Module):
                 from collections import OrderedDict
                 new_state_dict = OrderedDict()
                 for k, v in model_state.items():
-                    name = k.replace('module.', '', 1)  # remove 'module.' of dataparallel
+                    name = k.replace('module.', '',
+                                     1)  # remove 'module.' of dataparallel
                     name = k.replace('model.', '', 1)
                     new_state_dict[name] = v
                 feature.load_state_dict(new_state_dict)
-        return feature   
+        return feature
 
     def _map_layer_to_idx(self, offset=3):
         """Maps set of layer names to indices of model.

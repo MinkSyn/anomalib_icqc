@@ -1,116 +1,66 @@
-import os
-
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
-from components.backbone import TimmFeatureExtractor
-from components.anomaly_map import AnomalyMapGenerator
-from components.pre_process import Tiler
-from components.dynamic_module import DynamicBufferModule
+from components.feature import TimmFeatureExtractor
+from components.map import AnomalyMapGenerator
+from components.score import AnomalyScores
 
 
-class PatchcoreModel(DynamicBufferModule, nn.Module):
-    def __init__(self,
-                 input_size,
-                 layers,
-                 method_dis,
-                 arch="wide_resnet50_2",
-                 pre_trained=True,
-                 training=False,
-                 num_neighbors=9.):
+class PatchCore(nn.Module):
+    """ Use return embedding or return computed scores & maps follow PatchCore model
+
+    Args:
+        hparams (dict): hyper-params to build the model  
+        training (bool): recognize between feature extraction and compute scores & maps 
+    """
+
+    def __init__(self, hparams, training=False):
         super().__init__()
-        self.tiler = None
-
-        self.backbone = arch
-        self.layers = layers
-        self.input_size = input_size
-        
-        self.training = training
-        
-        self.method_dis = method_dis
-        self.num_neighbors = num_neighbors
-
-        self.feature_extractor = TimmFeatureExtractor(backbone=self.backbone, 
-                                                      pre_trained=pre_trained, 
-                                                      layers=self.layers)
-        
-        self.feature_pooler = torch.nn.AvgPool2d(3, 1, 1)
-        
-        self.anomaly_map_generator = AnomalyMapGenerator(input_size=input_size)
-
-    def forward(self, input_tensor, embedding_coreset):
-        """Return Embedding during training, or a tuple of anomaly map and anomaly score during testing.
-        Steps performed:
-        1. Get features from a CNN.
-        2. Generate embedding based on the features.
-        3. Compute anomaly map in test mode.
-        Args:
-            input_tensor (Tensor): Input tensor
-        Returns:
-            Tensor | tuple[Tensor, Tensor]: Embedding for training,
-                anomaly map and anomaly score for testing.
-        """
-        if self.tiler:
-            input_tensor = self.tiler.tile(input_tensor)
-
-        with torch.no_grad():
-            features = self.feature_extractor(input_tensor)
-
-        features = {layer: self.feature_pooler(feature) for layer, feature in features.items()}
-        embedding = self.generate_embedding(features)
-
-        if self.tiler:
-            embedding = self.tiler.untile(embedding)
-
-        batch_size, _, width, height = embedding.shape
-        embedding = self.reshape_embedding(embedding)
+        self.hparams = hparams
 
         if self.training:
-            output = embedding
-        else:
-            # apply nearest neighbor search
-            patch_scores, locations = self.nearest_neighbors(input_embedding=embedding, 
-                                                             embedding_coreset=embedding_coreset,
-                                                             n_neighbors=1)
-            # reshape to batch dimension
-            patch_scores = patch_scores.reshape((batch_size, -1))
-            locations = locations.reshape((batch_size, -1))
-            # compute anomaly score
-            anomaly_score = self.compute_anomaly_score(embedding_coreset, patch_scores, locations, embedding)
-            # reshape to w, h
-            patch_scores = patch_scores.reshape((batch_size, 1, width, height))
-            # get anomaly map
-            anomaly_map = self.anomaly_map_generator(patch_scores)
+            pre_trained = self.hparams['backbone']['pretrained']
+        self.training = training
 
-            output = (anomaly_map, anomaly_score)
+        layers = self.hparams['backbone']['layer']
+        arch = self.hparams['backbone']['arch']
+        self.feature_extractor = TimmFeatureExtractor(backbone=arch,
+                                                      pre_trained=pre_trained,
+                                                      layers=layers)
+        self.feature_pooler = torch.nn.AvgPool2d(3, 1, 1)
 
-        return output
+        self.compute_scores = AnomalyScores(cfg=self.hparams['nn_search'])
+        self.map_generator = AnomalyMapGenerator(
+            input_size=self.hparams['img_size'])
 
-    def generate_embedding(self, features):
-        """Generate embedding from hierarchical feature map.
+    def generate_embedding(self, features: dict[str:Tensor]) -> Tensor:
+        """ Generate embedding from hierarchical feature map.
+        
         Args:
             features: Hierarchical feature map from a CNN (ResNet18 or WideResnet)
             features: dict[str:Tensor]:
+        
         Returns:
             Embedding vector
         """
-
         embeddings = features[self.layers[0]]
         for layer in self.layers[1:]:
             layer_embedding = features[layer]
-            layer_embedding = F.interpolate(layer_embedding, size=embeddings.shape[-2:], mode="nearest")
+            layer_embedding = F.interpolate(layer_embedding,
+                                            size=embeddings.shape[-2:],
+                                            mode="nearest")
             embeddings = torch.cat((embeddings, layer_embedding), 1)
-
         return embeddings
 
-    @staticmethod
-    def reshape_embedding(embedding):
-        """Reshape Embedding.
+    def reshape_embedding(self, embedding: Tensor) -> Tensor:
+        """ Reshape Embedding.
         Reshapes Embedding to the following format:
         [Batch, Embedding, Patch, Patch] to [Batch*Patch*Patch, Embedding]
+        
         Args:
             embedding (Tensor): Embedding tensor extracted from CNN features.
+        
         Returns:
             Tensor: Reshaped embedding tensor.
         """
@@ -118,59 +68,47 @@ class PatchcoreModel(DynamicBufferModule, nn.Module):
         embedding = embedding.permute(0, 2, 3, 1).reshape(-1, embedding_size)
         return embedding
 
-    
-    def calculate_distance(self, input_embedding, embedding_coreset):
-        if self.method_dis == 'euclidean':
-            distances = torch.cdist(input_embedding, embedding_coreset, p=2.0)
+    def forward_feature(self,
+                        input_tensor: Tensor) -> tuple(Tensor, int, int, int):
+        """ Feature extraction forward a backbone and poolings layer
+
+        Args:
+            input_tensor (Tensor): images after pre-processing
+
+        Returns:
+            (embedding, batch_size, width, height) tuple(Tensor, int, int, int): values used to compute scores & maps
+        """
+        with torch.no_grad():
+            features = self.feature_extractor(input_tensor)
+
+        features = {
+            layer: self.feature_pooler(feature)
+            for layer, feature in features.items()
+        }
+        embedding = self.generate_embedding(features)
+
+        batch_size, _, width, height = embedding.shape
+        embedding = self.reshape_embedding(embedding)
+
+        return embedding, batch_size, width, height
+
+    def forward(self, x: Tensor, card_type: str) -> tuple(list, list):
+        """ Pipeline of PatchCore model
+
+        Args:
+            x (Tensor): images after pre-processing
+            card_type (str): name of card type
             
-        return distances
-
-    def nearest_neighbors(self, input_embedding, embedding_coreset, n_neighbors):
-        """Nearest Neighbours using brute force method and euclidean norm.
-        Args:
-            embedding (Tensor): Features to compare the distance with the memory bank.
-            n_neighbors (int): Number of neighbors to look at
         Returns:
-            Tensor: Patch scores.
-            Tensor: Locations of the nearest neighbor(s).
+            scores, maps (tuple(Tensor, Tensor)): results of scores & maps after computed
         """
-        distances = self.calculate_distance(input_embedding, embedding_coreset)  # euclidean norm
-        if n_neighbors == 1:
-            # when n_neighbors is 1, speed up computation by using min instead of topk
-            patch_scores, locations = distances.min(1)
-        else:
-            patch_scores, locations = distances.topk(k=n_neighbors, largest=False, dim=1)
-        return patch_scores, locations
+        x, batch_size, width, height = self.forward_feature(x)
+        if self.training:
+            return x
+        scores, patch_scores = self.compute_scores(x, batch_size,
+                                                   self.coresets[card_type])
 
-    def compute_anomaly_score(self, embedding_coreset, patch_scores, locations, embedding):
-        """Compute Image-Level Anomaly Score.
-        Args:
-            patch_scores (Tensor): Patch-level anomaly scores
-            locations: Memory bank locations of the nearest neighbor for each patch location
-            embedding: The feature embeddings that generated the patch scores
-        Returns:
-            Tensor: Image-level anomaly scores
-        """
+        patch_scores = patch_scores.reshape((batch_size, 1, width, height))
+        maps = self.map_generator(patch_scores)
 
-        # Don't need to compute weights if num_neighbors is 1
-        if self.num_neighbors == 1:
-            return patch_scores.amax(1)
-        batch_size, num_patches = patch_scores.shape
-        # 1. Find the patch with the largest distance to it's nearest neighbor in each image
-        max_patches = torch.argmax(patch_scores, dim=1)  # indices of m^test,* in the paper
-        # m^test,* in the paper
-        max_patches_features = embedding.reshape(batch_size, num_patches, -1)[torch.arange(batch_size), max_patches]
-        # 2. Find the distance of the patch to it's nearest neighbor, and the location of the nn in the membank
-        score = patch_scores[torch.arange(batch_size), max_patches]  # s^* in the paper
-        nn_index = locations[torch.arange(batch_size), max_patches]  # indices of m^* in the paper
-        # 3. Find the support samples of the nearest neighbor in the membank
-        nn_sample = embedding_coreset[nn_index, :]  # m^* in the paper
-        # indices of N_b(m^*) in the paper
-        _, support_samples = self.nearest_neighbors(nn_sample, embedding_coreset, n_neighbors=self.num_neighbors)
-        # 4. Find the distance of the patch features to each of the support samples
-        distances = self.calculate_distance(max_patches_features.unsqueeze(1), embedding_coreset[support_samples])
-        # 5. Apply softmax to find the weights
-        weights = (1 - F.softmax(distances.squeeze(1), 1))[..., 0]
-        # 6. Apply the weight factor to the score
-        score = weights * score  # s in the paper
-        return score
+        return scores, maps

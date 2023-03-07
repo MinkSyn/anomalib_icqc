@@ -19,50 +19,64 @@ def verify_device(device):
     return 'cpu'
 
 
-IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
+IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif",
+                  ".tiff", ".webp")
+
+
 def is_image_file(filename: str):
     return filename.lower().endswith(IMG_EXTENSIONS)
 
+
 def get_img_transform(img_size):
-    transforms = T.Compose([T.Resize(img_size),
-                           T.ToTensor(),
-                           T.Normalize(mean=[0.485, 0.456, 0.406],
-                                        std=[0.229, 0.224, 0.225])])
+    transforms = T.Compose([
+        T.Resize(img_size),
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
     return transforms
+
 
 def binary_classify(image_scores, thresh):
     image_classifications = image_scores.clone()
-    image_classifications[image_classifications < thresh] = AnomalyID['normal'].value
-    image_classifications[image_classifications >= thresh] = AnomalyID['abnormal'].value
+    image_classifications[
+        image_classifications < thresh] = AnomalyID['normal'].value
+    image_classifications[
+        image_classifications >= thresh] = AnomalyID['abnormal'].value
     return image_classifications
 
-def draw_chart(scores, save_path=None, name_images=None, step=1, pad=2):
+
+def draw_histogram(scores, save_path=None, name_images=None, step=1, pad=2):
     os.makedirs(f'{save_path}', exist_ok=True)
     path_hist = os.path.join(f'{save_path}', f"{name_images}")
-    
+
     bin_start = min(scores[0] + scores[1]) - pad
     bin_end = max(scores[0] + scores[1]) + pad
     bins = np.arange(bin_start, bin_end, step)
-    
-    plt.figure(figsize=(16, 8))
-    plt.hist([scores[0], scores[1]], bins=bins, alpha=1,
-                histtype='bar', color=['green', 'blue'], label=['Normal', 'Abnormal'])
+
+    fig = plt.figure(figsize=(16, 8))
+    plt.hist([scores[0], scores[1]],
+             bins=bins,
+             alpha=1,
+             histtype='bar',
+             color=['green', 'blue'],
+             label=['Normal', 'Abnormal'])
     plt.title(f'Histogram score map')
     plt.xlabel('score')
     plt.ylabel('samples')
     plt.legend(loc='upper right')
     plt.savefig(path_hist, transparent=True)
     plt.close()
+    return fig
 
-def visualize_eval(target, prediction, prob, save_path):
+
+def visualize_eval(target, prediction, threshold, save_path):
     score = roc_auc_score(target, prediction)
     precision, recall, _ = optimal_threshold(target, prediction)
-    _, _, threshold = optimal_threshold(target, prob)
     res = {
         'ROC': score,
         'Precision': precision,
-        'Recall': recall, 
-        'Threshold_auto': threshold,
+        'Recall': recall,
+        'Threshold': threshold,
     }
     _, axes = plt.subplots(nrows=1, ncols=2, figsize=(20, 4))
 
@@ -80,11 +94,13 @@ def visualize_eval(target, prediction, prob, save_path):
     plt.close()
     return res
 
+
 def optimal_threshold(target, prediction):
     target = np.array(target)
     prediction = np.array(prediction)
-    
-    precision, recall, thresholds = precision_recall_curve(target.flatten(), prediction.flatten())
+
+    precision, recall, thresholds = precision_recall_curve(
+        target.flatten(), prediction.flatten())
     a = 2 * precision * recall
     b = precision + recall
     f1 = np.divide(a, b, out=np.zeros_like(a), where=b != 0)

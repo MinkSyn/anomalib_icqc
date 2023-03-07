@@ -1,8 +1,10 @@
 from enum import Enum
 
+
 class AnomalyID(Enum):
     abnormal = 1
     normal = 0
+
 
 class CardID(Enum):
     CitizenCardV1_back = 0

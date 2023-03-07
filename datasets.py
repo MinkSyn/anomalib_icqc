@@ -5,43 +5,61 @@ from torch.utils.data import Dataset
 
 from tool import is_image_file
 from const import AnomalyID
+from torchvision import transforms
 
-class AnoDataset(Dataset):
-    def __init__(self, root,
-                 split=None,
-                 icqc2ano=None,
-                 transforms=None,
-                 ):
+
+class PatchCoreDataset(Dataset):
+    """ Loader dataset from root path for train & test
+
+    Args:
+        root (str): path of dataset
+        split (str): recognize between train or test
+        icqc2ano (dict(list(str))): definition classes of PatchCore
+        
+    Return:
+        list[tuple(Tensor, str, int)]: dataset contains (image, path, target)
+    """
+
+    def __init__(
+        self,
+        root: str,
+        split: str = None,
+        icqc2ano: dict(list(str)) = None,
+        transforms: transforms = None,
+    ):
         self.root = root
         self.icqc2ano = icqc2ano
         self.transforms = transforms
-        
+
         if split is not None:
             assert split in ['train', 'test']
 
         self.samples = self.get_dataset(split)
-                
-    def get_dataset(self, split):
+
+    def get_dataset(self, split: str) -> list(str):
         if split == 'train':
             image_paths = []
             for file in os.listdir(os.path.join(self.root)):
                 filename = os.fsdecode(file)
                 if is_image_file(filename):
                     path = os.path.join(os.path.join(self.root), filename)
-                    image_paths.append((path, AnomalyID['normal'].value))    
-                      
+                    image_paths.append((path, AnomalyID['normal'].value))
+
         elif (split == 'test') and (self.icqc2ano is not None):
             lst_normal = self.icqc2ano['normal']
             lst_abnormal = self.icqc2ano['abnormal']
             if lst_normal == []:
                 normal_paths = []
             else:
-                normal_paths = self.get_image_test(lst_normal, AnomalyID['normal'].value)
-            abnormal_paths = self.get_image_test(lst_abnormal, AnomalyID['abnormal'].value)
+                normal_paths = self.get_image_test(lst_normal,
+                                                   AnomalyID['normal'].value)
+            abnormal_paths = self.get_image_test(lst_abnormal,
+                                                 AnomalyID['abnormal'].value)
             image_paths = normal_paths + abnormal_paths
         return image_paths
-    
-    def get_image_test(self, lst_class, id_class):
+
+    def get_image_test(self, lst_class: list[str],
+                       id_class: int) -> list[tuple(str, int)]:
         image_paths = []
         for cls_quality in lst_class:
             for name_folder in os.listdir(self.root):
@@ -59,11 +77,11 @@ class AnoDataset(Dataset):
 
     def __getitem__(self, idx):
         path, target = self.samples[idx]
-        
+
         with open(path, 'rb') as f:
             img = Image.open(f).convert('RGB')
-        
+
         if self.transforms is not None:
             img = self.transforms(img)
-            
+
         return img, path, target
