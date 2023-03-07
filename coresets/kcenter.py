@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 
-from sparse import SparseRandomProjection
+from coresets.sparse import SparseRandomProjection
 
 
 class KCenterGreedy:
