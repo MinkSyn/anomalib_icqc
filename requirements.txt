@@ -1,0 +1,11 @@
+loguru
+matplotlib
+mlflow
+numpy
+omegaconf
+pandas
+Pillow
+PyYAML
+scikit_learn
+timm
+tqdm

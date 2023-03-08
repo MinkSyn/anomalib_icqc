@@ -24,9 +24,10 @@ class PatchCoreDataset(Dataset):
         self,
         root: str,
         split: str = None,
-        icqc2ano: dict(list(str)) = None,
+        icqc2ano: dict[list[str]] = None,
         transforms: transforms = None,
     ):
+        super().__init__()
         self.root = root
         self.icqc2ano = icqc2ano
         self.transforms = transforms
@@ -36,7 +37,7 @@ class PatchCoreDataset(Dataset):
 
         self.samples = self.get_dataset(split)
 
-    def get_dataset(self, split: str) -> list(str):
+    def get_dataset(self, split: str) -> list[str]:
         if split == 'train':
             image_paths = []
             for file in os.listdir(os.path.join(self.root)):
@@ -59,7 +60,7 @@ class PatchCoreDataset(Dataset):
         return image_paths
 
     def get_image_test(self, lst_class: list[str],
-                       id_class: int) -> list[tuple(str, int)]:
+                       id_class: int) -> list[tuple[str, int]]:
         image_paths = []
         for cls_quality in lst_class:
             for name_folder in os.listdir(self.root):

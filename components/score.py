@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
@@ -14,6 +16,7 @@ class AnomalyScores(nn.Module):
         """
 
     def __init__(self, cfg):
+        super().__init__()
         self.method_dis = cfg['distance']
         self.num_neighbors = cfg['num_neighbors']
 

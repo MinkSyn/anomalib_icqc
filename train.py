@@ -4,7 +4,7 @@ import argparse
 from loguru import logger
 from tqdm import tqdm
 import pandas as pd
-# import mlflow
+import mlflow
 
 import torch
 from torch import Tensor
@@ -15,7 +15,7 @@ from model import PatchCore
 from datasets import PatchCoreDataset
 from config import Config
 from tool import verify_device, get_img_transform, optimal_threshold, visualize_eval, draw_histogram
-from const import CardID, AnomalyID
+from const import AnomalyID
 
 
 class Trainer:
@@ -29,12 +29,14 @@ class Trainer:
         self.cfg = cfg
         self.device = verify_device(cfg['device'])
 
-        self.cls_cards = sorted([card_type.name for card_type in CardID])
+        self.cls_cards = cfg['cls_cards']
+        self.ckpt = cfg['ckpt']
 
         self.data_root = cfg['data_root']
         self.test_root = cfg['test_root']
 
         self.arch = cfg['hparams']['backbone']['arch']
+        self.run = cfg['run']
         self.run_name = f"run{cfg['run']}__{self.arch}"
 
         self.hparams = cfg['hparams']
@@ -56,7 +58,7 @@ class Trainer:
         self.threshs = {}
         self.coresets = {}
 
-    def get_loader(self, split: str) -> dict(DataLoader):
+    def get_loader(self, split: str) -> dict[DataLoader]:
         """ Get dataloader for train set & test set with all cards
         
         Args:
@@ -92,7 +94,7 @@ class Trainer:
     def embedding_coreset(self):
         """ Create embedding coreset and save into self.coresets
         """
-        for card_type in self.data_train.keys():
+        for card_type in self.cls_cards:
             logger.info(f'Embedding {card_type}')
 
             for idx, batch in enumerate(tqdm(self.data_train[card_type])):
@@ -141,7 +143,7 @@ class Trainer:
         # with mlflow.start_run(run_name=self.run_name) as run:
         #     mlflow.log_param("Hyper-params", self.hparams)
 
-        for card_type in self.data_test.keys():
+        for card_type in self.cls_cards:
             logger.info(f"Class card: {card_type}")
             result_train, mem_train, time_train = self.inference_one_card(
                 self.data_train[card_type], card_type)
@@ -183,17 +185,22 @@ class Trainer:
         torch.save(metric, metric_path)
 
         ckpt_path = os.path.join(self.embed_path, f"{self.run_name}.pt")
-        info_ver = {
-            'run': self.cfg['run'],
-            'hparams': self.hparams,
-            'threshold': self.threshs,
-            'embedding_coreset': self.coresets,
-        }
+        if self.ckpt is not None:
+            info_ver = torch.load(self.ckpt)
+        else:
+            info_ver = {}
+        for card_type in self.cls_cards:
+            info_ver[card_type] = {
+                'run': self.run,
+                'hparams': self.hparams,
+                'threshold': self.threshs[card_type],
+                'embedding_coreset': self.coresets[card_type],
+            }
         torch.save(info_ver, ckpt_path)
         # mlflow.pytorch.log_model(info_ver, "Model PatchCore")
 
     def inference_one_card(self, dataloader: DataLoader,
-                           card_type: str) -> tuple(list, Tensor, float):
+                           card_type: str) -> tuple[list, Tensor, float]:
         """ Compute scores, GPU memory and time inference for one dataloader
         
         Args:
@@ -226,8 +233,8 @@ class Trainer:
         time_per = sum(time_infer) * 100 / num_samples
         return output, memory, time_per
 
-    def append_prediction(self, results: list(dict),
-                          threshold: float) -> list(dict):
+    def append_prediction(self, results: list[dict],
+                          threshold: float) -> list[dict]:
         """ Append predict with optimal threshold into results 
 
         Args:
@@ -246,7 +253,7 @@ class Trainer:
             results[idx]['pred'] = pred
         return results
 
-    def compute_metric(self, result_train: list(dict), result_test: list(dict),
+    def compute_metric(self, result_train: list[dict], result_test: list[dict],
                        threshold: float) -> pd.DataFrame:
         """ Compute and return precision, recall and ROC
 
@@ -270,7 +277,7 @@ class Trainer:
         res_metric = visualize_eval(target, prediction, threshold, save_path)
         return pd.DataFrame([res_metric])
 
-    def save_histogram(self, result_train: list(dict), result_test: list(dict),
+    def save_histogram(self, result_train: list[dict], result_test: list[dict],
                        name_image: str) -> None:
         """ Draw histograms with scores of train set and test set
 

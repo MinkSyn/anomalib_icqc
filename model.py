@@ -1,13 +1,15 @@
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
+from typing import Tuple
 
 from components.feature import TimmFeatureExtractor
 from components.map import AnomalyMapGenerator
 from components.score import AnomalyScores
+from components.buffer import DynamicBufferModule
 
 
-class PatchCore(nn.Module):
+class PatchCore(DynamicBufferModule, nn.Module):
     """ Use return embedding or return computed scores & maps follow PatchCore model
 
     Args:
@@ -23,11 +25,11 @@ class PatchCore(nn.Module):
             pre_trained = self.hparams['backbone']['pretrained']
         self.training = training
 
-        layers = self.hparams['backbone']['layer']
+        self.layers = self.hparams['backbone']['layer']
         arch = self.hparams['backbone']['arch']
         self.feature_extractor = TimmFeatureExtractor(backbone=arch,
                                                       pre_trained=pre_trained,
-                                                      layers=layers)
+                                                      layers=self.layers)
         self.feature_pooler = torch.nn.AvgPool2d(3, 1, 1)
 
         self.compute_scores = AnomalyScores(cfg=self.hparams['nn_search'])
@@ -69,7 +71,7 @@ class PatchCore(nn.Module):
         return embedding
 
     def forward_feature(self,
-                        input_tensor: Tensor) -> tuple(Tensor, int, int, int):
+                        input_tensor: Tensor) -> Tuple[Tensor, int, int, int]:
         """ Feature extraction forward a backbone and poolings layer
 
         Args:
@@ -90,9 +92,9 @@ class PatchCore(nn.Module):
         batch_size, _, width, height = embedding.shape
         embedding = self.reshape_embedding(embedding)
 
-        return embedding, batch_size, width, height
+        return (embedding, batch_size, width, height)
 
-    def forward(self, x: Tensor, card_type: str) -> tuple(list, list):
+    def forward(self, x: Tensor, embedding_coreset: Tensor) -> Tuple[list, list]:
         """ Pipeline of PatchCore model
 
         Args:
@@ -106,7 +108,7 @@ class PatchCore(nn.Module):
         if self.training:
             return x
         scores, patch_scores = self.compute_scores(x, batch_size,
-                                                   self.coresets[card_type])
+                                                   embedding_coreset)
 
         patch_scores = patch_scores.reshape((batch_size, 1, width, height))
         maps = self.map_generator(patch_scores)
