@@ -6,7 +6,7 @@ from torch import Tensor, nn
 class DynamicBufferModule(ABC, nn.Module):
     """Torch module that allows loading variables from the state dict even in the case of shape mismatch."""
 
-    def get_tensor_attribute(self, attribute_name: str) -> Tensor:
+    def get_tensor_attribute(self, attribute_name):
         """Get attribute of the tensor given the name.
         Args:
             attribute_name (str): Name of the tensor
@@ -21,7 +21,7 @@ class DynamicBufferModule(ABC, nn.Module):
 
         raise ValueError(f"Attribute with name '{attribute_name}' is not a torch Tensor")
 
-    def _load_from_state_dict(self, state_dict: dict, prefix: str, *args):
+    def _load_from_state_dict(self, state_dict, prefix, *args):
         """Resizes the local buffers to match those stored in the state dict.
         Overrides method from parent class.
         Args:

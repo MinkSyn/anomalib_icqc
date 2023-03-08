@@ -77,8 +77,8 @@ class AnomalyScores(nn.Module):
         score = weights * score
         return score
 
-    def forward(self, embedding: Tensor, batch_size: int,
-                embedding_coreset: Tensor) -> list:
+    def forward(self, embedding, batch_size,
+                embedding_coreset):
         """ Return scores of test embedding
 
         Args:

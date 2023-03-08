@@ -36,7 +36,7 @@ class PatchCore(DynamicBufferModule, nn.Module):
         self.map_generator = AnomalyMapGenerator(
             input_size=self.hparams['img_size'])
 
-    def generate_embedding(self, features: dict[str:Tensor]) -> Tensor:
+    def generate_embedding(self, features):
         """ Generate embedding from hierarchical feature map.
         
         Args:
@@ -55,7 +55,7 @@ class PatchCore(DynamicBufferModule, nn.Module):
             embeddings = torch.cat((embeddings, layer_embedding), 1)
         return embeddings
 
-    def reshape_embedding(self, embedding: Tensor) -> Tensor:
+    def reshape_embedding(self, embedding):
         """ Reshape Embedding.
         Reshapes Embedding to the following format:
         [Batch, Embedding, Patch, Patch] to [Batch*Patch*Patch, Embedding]
@@ -71,7 +71,7 @@ class PatchCore(DynamicBufferModule, nn.Module):
         return embedding
 
     def forward_feature(self,
-                        input_tensor: Tensor) -> Tuple[Tensor, int, int, int]:
+                        input_tensor):
         """ Feature extraction forward a backbone and poolings layer
 
         Args:
@@ -94,7 +94,7 @@ class PatchCore(DynamicBufferModule, nn.Module):
 
         return (embedding, batch_size, width, height)
 
-    def forward(self, x: Tensor, embedding_coreset: Tensor) -> Tuple[list, list]:
+    def forward(self, x, embedding_coreset):
         """ Pipeline of PatchCore model
 
         Args:

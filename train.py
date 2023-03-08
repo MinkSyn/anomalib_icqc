@@ -58,7 +58,7 @@ class Trainer:
         self.threshs = {}
         self.coresets = {}
 
-    def get_loader(self, split: str) -> dict[DataLoader]:
+    def get_loader(self, split):
         """ Get dataloader for train set & test set with all cards
         
         Args:
@@ -111,7 +111,7 @@ class Trainer:
                 embedding_vectors)
             logger.info('-' * 20)
 
-    def subsample_embedding(self, embedding: Tensor) -> Tensor:
+    def subsample_embedding(self, embedding):
         """ Create coreset with feature extracted from the backbone
         
         Args:
@@ -199,8 +199,8 @@ class Trainer:
         torch.save(info_ver, ckpt_path)
         # mlflow.pytorch.log_model(info_ver, "Model PatchCore")
 
-    def inference_one_card(self, dataloader: DataLoader,
-                           card_type: str) -> tuple[list, Tensor, float]:
+    def inference_one_card(self, dataloader,
+                           card_type):
         """ Compute scores, GPU memory and time inference for one dataloader
         
         Args:
@@ -233,8 +233,8 @@ class Trainer:
         time_per = sum(time_infer) * 100 / num_samples
         return output, memory, time_per
 
-    def append_prediction(self, results: list[dict],
-                          threshold: float) -> list[dict]:
+    def append_prediction(self, results,
+                          threshold):
         """ Append predict with optimal threshold into results 
 
         Args:
@@ -253,8 +253,8 @@ class Trainer:
             results[idx]['pred'] = pred
         return results
 
-    def compute_metric(self, result_train: list[dict], result_test: list[dict],
-                       threshold: float) -> pd.DataFrame:
+    def compute_metric(self, result_train, result_test,
+                       threshold):
         """ Compute and return precision, recall and ROC
 
         Args:
@@ -277,8 +277,8 @@ class Trainer:
         res_metric = visualize_eval(target, prediction, threshold, save_path)
         return pd.DataFrame([res_metric])
 
-    def save_histogram(self, result_train: list[dict], result_test: list[dict],
-                       name_image: str) -> None:
+    def save_histogram(self, result_train, result_test,
+                       name_image):
         """ Draw histograms with scores of train set and test set
 
         Args:

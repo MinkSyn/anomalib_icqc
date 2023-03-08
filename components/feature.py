@@ -106,7 +106,7 @@ class TimmFeatureExtractor(nn.Module):
 
         return idx
 
-    def forward(self, inputs: Tensor) -> dict[str, Tensor]:
+    def forward(self, inputs):
         """Forward-pass input tensor into the CNN.
         Args:
             inputs (Tensor): Input tensor
